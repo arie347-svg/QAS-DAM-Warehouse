@@ -1,0 +1,72 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qas-audit-app",
+  "main": "worker/index.ts",
+  "compatibility_date": "2024-11-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "qas-audit-dev-db",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "EVIDENCE",
+      "bucket_name": "qas-audit-dev-evidence"
+    }
+  ],
+  "env": {
+    "staging": {
+      "name": "qas-audit-staging",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "qas-audit-staging-db",
+          "database_id": "40f81099-e763-4908-95e3-04f2dc5f9b60"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "EVIDENCE",
+          "bucket_name": "qas-audit-staging-evidence"
+        }
+      ],
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "APP_VERSION": "1.0.0-rc1",
+        "ACCESS_TEAM_DOMAIN": "daya-motora.cloudflareaccess.com",
+        "ACCESS_AUD": "10ec5a2c27da7e59f7501f42fb18c2a57470b76dada049f670b2454ce7896517"
+      }
+    },
+    "production": {
+      "name": "qas-audit-prod",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "qas-audit-prod-db",
+          "database_id": "5890a217-d1d4-4acd-a382-49dc0ed3efd9"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "EVIDENCE",
+          "bucket_name": "qas-audit-prod-evidence"
+        }
+      ],
+      "vars": {
+        "ENVIRONMENT": "production",
+        "APP_VERSION": "1.0.0",
+        "ACCESS_TEAM_DOMAIN": "daya-motora.cloudflareaccess.com",
+        "ACCESS_AUD": "10ec5a2c27da7e59f7501f42fb18c2a57470b76dada049f670b2454ce7896517"
+      }
+    }
+  }
+}

@@ -22,7 +22,7 @@ export async function sendPasswordResetEmail(
   recipientName?: string
 ): Promise<EmailDeliveryResult> {
   const cleanToEmail = toEmail.trim().toLowerCase();
-  const fromAddress = env.MAIL_FROM_ADDRESS || 'QAS Logistics <no-reply@daya-motora.com>';
+  const fromAddress = env.MAIL_FROM_ADDRESS || 'QAS Logistics <onboarding@resend.dev>';
   const subject = '[QAS Logistics] Kode OTP Reset Kata Sandi Akun Anda';
 
   const htmlBody = `
@@ -101,10 +101,19 @@ export async function sendPasswordResetEmail(
       }
 
       const errText = await response.text();
+      let parsedMessage = errText;
+      try {
+        const parsedJson = JSON.parse(errText) as { message?: string };
+        if (parsedJson.message) {
+          parsedMessage = parsedJson.message;
+        }
+      } catch {
+        // use raw errText
+      }
       return {
         delivered: false,
         mode: 'LIVE_API',
-        error: `Mail provider HTTP ${response.status}: ${errText}`,
+        error: `Mail provider HTTP ${response.status}: ${parsedMessage}`,
       };
     } catch (err) {
       return {

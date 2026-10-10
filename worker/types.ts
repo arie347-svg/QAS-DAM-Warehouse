@@ -26,8 +26,8 @@ export interface Env {
   ACCESS_TEAM_DOMAIN?: string;
   ACCESS_AUD?: string;
   JWT_DEV_SECRET?: string;
-  MAIL_API_KEY?: string;
-  MAIL_PROVIDER_URL?: string;
+  GAS_WEBAPP_URL?: string;
+  GAS_SECRET_TOKEN?: string;
   MAIL_FROM_ADDRESS?: string;
 }
 

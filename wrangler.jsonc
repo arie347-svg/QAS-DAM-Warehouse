@@ -44,8 +44,7 @@
         "APP_VERSION": "1.0.0-rc1",
         "ACCESS_TEAM_DOMAIN": "daya-motora.cloudflareaccess.com",
         "ACCESS_AUD": "10ec5a2c27da7e59f7501f42fb18c2a57470b76dada049f670b2454ce7896517",
-        "MAIL_PROVIDER_URL": "https://api.resend.com/emails",
-        "MAIL_FROM_ADDRESS": "QAS Logistics <onboarding@resend.dev>"
+        "GAS_WEBAPP_URL": "https://script.google.com/macros/s/AKfycbwlpUYD-_66raCWnbJf0qBEwvjQLW9De2moNH6soQUD0Qe5XzLhQujVE11WU6ggtsEw/exec"
       }
     },
     "production": {
@@ -68,8 +67,7 @@
         "APP_VERSION": "1.0.0",
         "ACCESS_TEAM_DOMAIN": "daya-motora.cloudflareaccess.com",
         "ACCESS_AUD": "10ec5a2c27da7e59f7501f42fb18c2a57470b76dada049f670b2454ce7896517",
-        "MAIL_PROVIDER_URL": "https://api.resend.com/emails",
-        "MAIL_FROM_ADDRESS": "QAS Logistics <onboarding@resend.dev>"
+        "GAS_WEBAPP_URL": "https://script.google.com/macros/s/AKfycbwlpUYD-_66raCWnbJf0qBEwvjQLW9De2moNH6soQUD0Qe5XzLhQujVE11WU6ggtsEw/exec"
       }
     }
   }

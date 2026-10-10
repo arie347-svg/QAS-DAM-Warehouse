@@ -262,7 +262,7 @@ authRouter.post('/auth/forgot-password/request', async (c) => {
   return c.json({
     success: true,
     message: `Kode verifikasi OTP 6-digit telah dikirimkan ke email ${email}. Silakan periksa kotak masuk Anda.`,
-    simulatedOtp: c.env.ENVIRONMENT === 'test' || !c.env.MAIL_API_KEY ? otp : undefined,
+    simulatedOtp: c.env.ENVIRONMENT === 'test' || !c.env.GAS_WEBAPP_URL ? otp : undefined,
     requestId,
   });
 });

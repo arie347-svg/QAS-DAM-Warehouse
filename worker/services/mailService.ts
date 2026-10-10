@@ -5,25 +5,38 @@ export interface EmailDeliveryResult {
   mode: 'LIVE_API' | 'MOCK_LOG';
   provider?: string;
   error?: string;
+  remainingQuota?: number;
 }
 
 /**
- * Mengirimkan email transaksional kode OTP reset kata sandi ke alamat e-mail dinamis pengguna.
+ * Mengirimkan email transaksional kode OTP reset kata sandi ke alamat e-mail
+ * menggunakan Google Apps Script (GAS) Web App Endpoint melalui HTTP POST.
  *
  * @param env Cloudflare Worker Environment
- * @param toEmail Alamat e-mail tujuan (berasal dari input form/username pengguna)
+ * @param toEmail Alamat e-mail tujuan (string tunggal atau array string penerima)
  * @param otp Kode OTP 6-digit numerik
  * @param recipientName Nama penerima opsional
  */
 export async function sendPasswordResetEmail(
   env: Env,
-  toEmail: string,
+  toEmail: string | string[],
   otp: string,
   recipientName?: string
 ): Promise<EmailDeliveryResult> {
-  const cleanToEmail = toEmail.trim().toLowerCase();
-  const fromAddress = env.MAIL_FROM_ADDRESS || 'QAS Logistics <onboarding@resend.dev>';
+  // Normalisasi penerima (string atau array)
+  let cleanRecipients: string | string[];
+  let displayRecipient: string;
+
+  if (Array.isArray(toEmail)) {
+    cleanRecipients = toEmail.map((item) => item.trim().toLowerCase()).filter(Boolean);
+    displayRecipient = cleanRecipients.join(', ');
+  } else {
+    cleanRecipients = toEmail.trim().toLowerCase();
+    displayRecipient = cleanRecipients;
+  }
+
   const subject = '[QAS Logistics] Kode OTP Reset Kata Sandi Akun Anda';
+  const senderName = 'QAS Motorcycle Logistics';
 
   const htmlBody = `
     <!DOCTYPE html>
@@ -54,7 +67,7 @@ export async function sendPasswordResetEmail(
           <p>Sistem Pengendalian Mutu & Audit Logistik Sepeda Motor</p>
         </div>
         <div class="content">
-          <div class="greeting">Halo ${recipientName || cleanToEmail},</div>
+          <div class="greeting">Halo ${recipientName || displayRecipient},</div>
           <div class="desc">
             Kami menerima permintaan pemulihan kata sandi mandiri untuk akun QAS Logistics Anda. Masukkan 6-digit kode OTP berikut pada layar verifikasi:
           </div>
@@ -67,69 +80,83 @@ export async function sendPasswordResetEmail(
           </div>
         </div>
         <div class="footer">
-          Email otomatis dari Server QAS Motorcycle Logistics. Jangan membalas email ini.
+          Email otomatis dari Server QAS Motorcycle Logistics via Google Apps Script Mailer. Jangan membalas email ini.
         </div>
       </div>
     </body>
     </html>
   `.trim();
 
-  // 1. Jika API Key Mailer (seperti Resend atau Provider HTTP) telah disetel di environment Worker
-  if (env.MAIL_API_KEY) {
-    const providerUrl = env.MAIL_PROVIDER_URL || 'https://api.resend.com/emails';
+  // 1. Integrasi Google Apps Script (GAS) Web App Endpoint
+  if (env.GAS_WEBAPP_URL) {
     try {
-      const response = await fetch(providerUrl, {
+      const payload = {
+        token: env.GAS_SECRET_TOKEN || 'qas-secret-token-2026',
+        to: cleanRecipients,
+        subject,
+        html: htmlBody,
+        htmlBody,
+        otp,
+        recipientName: recipientName || displayRecipient,
+        senderName,
+      };
+
+      // Wajib sertakan redirect: "follow" karena GAS Web App selalu melakukan HTTP 302 redirect
+      const response = await fetch(env.GAS_WEBAPP_URL, {
         method: 'POST',
+        redirect: 'follow',
         headers: {
-          Authorization: `Bearer ${env.MAIL_API_KEY}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain;charset=utf-8',
         },
-        body: JSON.stringify({
-          from: fromAddress,
-          to: [cleanToEmail],
-          subject,
-          html: htmlBody,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
+      const responseText = await response.text();
+      let responseJson: {
+        success?: boolean;
+        message?: string;
+        error?: string;
+        remainingQuota?: number;
+      } | null = null;
+
+      try {
+        responseJson = JSON.parse(responseText);
+      } catch {
+        // Respons bukan JSON terstruktur (misal halaman HTML error bawaan Google)
+      }
+
+      if (response.ok && responseJson && responseJson.success === true) {
         return {
           delivered: true,
           mode: 'LIVE_API',
-          provider: providerUrl.includes('resend') ? 'Resend' : 'Custom Mail Gateway',
+          provider: 'Google Apps Script (GmailApp)',
+          remainingQuota: responseJson.remainingQuota,
         };
       }
 
-      const errText = await response.text();
-      let parsedMessage = errText;
-      try {
-        const parsedJson = JSON.parse(errText) as { message?: string };
-        if (parsedJson.message) {
-          parsedMessage = parsedJson.message;
-        }
-      } catch {
-        // use raw errText
-      }
+      const errorMessage = responseJson?.error || (responseText.length < 200 ? responseText : `HTTP ${response.status}`);
       return {
         delivered: false,
         mode: 'LIVE_API',
-        error: `Mail provider HTTP ${response.status}: ${parsedMessage}`,
+        provider: 'Google Apps Script (GmailApp)',
+        error: `GAS Web App Gagal (${response.status}): ${errorMessage}`,
+        remainingQuota: responseJson?.remainingQuota,
       };
     } catch (err) {
       return {
         delivered: false,
         mode: 'LIVE_API',
+        provider: 'Google Apps Script (GmailApp)',
         error: err instanceof Error ? err.message : String(err),
       };
     }
   }
 
-  // 2. Mode Simulasi / Sandboxing / Local Dev (ketika API Key belum terpasang di Cloudflare Secret)
-  // Catatan: Tetap log secara aman tanpa membocorkan kredensial ke client public.
-  // Kode dikirim ke tujuan dinamis cleanToEmail.
+  // 2. Mode Simulasi / Sandboxing / Local Dev (ketika GAS_WEBAPP_URL belum dikonfigurasi)
+  // Menjaga agar alur operasional dev tetap dapat diuji tanpa memblokir developer.
   return {
     delivered: true,
     mode: 'MOCK_LOG',
-    provider: 'Local/Dev Sandbox Simulator',
+    provider: 'Local/Dev Sandbox Simulator (GAS_WEBAPP_URL Not Configured)',
   };
 }
